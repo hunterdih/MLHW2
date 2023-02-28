@@ -47,10 +47,11 @@ def erm_classify(discs):
     err = []
 
     gammas_list = []
-
+    use_discs = np.concatenate((use_discs, [-5]))
+    use_discs = np.concatenate((use_discs, [5]))
     for g in np.sort(use_discs):
         # P(D = 1|L = 1)
-        tpc = ((disc_1 > g).sum() / (PL1 * samples))
+        tpc = ((disc_1 >= g).sum() / (PL1 * samples))
         # P(D = 1|L = 0)
         fpc = ((disc_0 >= g).sum() / (PL0 * samples))
 
