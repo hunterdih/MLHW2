@@ -21,17 +21,17 @@ PL1 = 0.4
 THEORETICAL_GAMMA = PL0 / PL1
 
 
-def get_discriminant(data, samples):
+def get_discriminant(data):
     # Calculate all possible gamma values
     gamma_list = []
     use_data = data.values[:, :2]
 
-    #discs = np.log(W11 * multivariate_normal.pdf(use_data, M11, CIJ) + W12 * multivariate_normal.pdf(use_data, M12, CIJ)) - np.log(W01 * multivariate_normal.pdf(use_data, M01, CIJ) + W02 * multivariate_normal.pdf(use_data, M02, CIJ))
-    discs = np.log(multivariate_normal.pdf(use_data, M11, CIJ)) - np.log(multivariate_normal.pdf(use_data, M01, CIJ))
+    # discs = np.log(W11 * multivariate_normal.pdf(use_data, M11, CIJ) + W12 * multivariate_normal.pdf(use_data, M12, CIJ)) - np.log(W01 * multivariate_normal.pdf(use_data, M01, CIJ) + W02 * multivariate_normal.pdf(use_data, M02, CIJ))
+    # discs = np.log(multivariate_normal.pdf(use_data, M11, CIJ)) - np.log(multivariate_normal.pdf(use_data, M01, CIJ))
 
-    #LogVal1 = np.log((W11 * multivariate_normal.pdf(use_data, M11, CIJ)) + (W12 * multivariate_normal.pdf(use_data, M12, CIJ)))
-    #LogVal0 = np.log((W01 * multivariate_normal.pdf(use_data, M01, CIJ)) + (W02 * multivariate_normal.pdf(use_data, M02, CIJ)))
-    #discs = LogVal1-LogVal0
+    LogVal1 = np.log((W11 * multivariate_normal.pdf(use_data, M11, CIJ)) + (W12 * multivariate_normal.pdf(use_data, M12, CIJ)))
+    LogVal0 = np.log((W01 * multivariate_normal.pdf(use_data, M01, CIJ)) + (W02 * multivariate_normal.pdf(use_data, M02, CIJ)))
+    discs = LogVal1-LogVal0
 
     return discs
 
@@ -47,8 +47,6 @@ def erm_classify(discs):
     err = []
 
     gammas_list = []
-    use_discs = np.concatenate((use_discs,[-100]))
-    use_discs = np.concatenate((use_discs, [100]))
 
     for g in np.sort(use_discs):
         # P(D = 1|L = 1)
@@ -67,11 +65,11 @@ def erm_classify(discs):
 
 
 def generate_data(samples):
-    Data0 = W01 * np.random.multivariate_normal(M01, CIJ, int(PL0 * samples)) #+ (W02 * np.random.multivariate_normal(M02, CIJ, int(PL0 * samples)))
+    Data0 = W01 * np.random.multivariate_normal(M01, CIJ, int(PL0 * samples)) + (W02 * np.random.multivariate_normal(M02, CIJ, int(PL0 * samples)))
     Label0 = np.full((int(PL0 * samples), 1), 0)
 
     Data0 = np.concatenate((Data0, Label0), axis=1)
-    Data1 = W11 * np.random.multivariate_normal(M11, CIJ, int(PL1 * samples)) #+ (W12 * np.random.multivariate_normal(M12, CIJ, int(PL1 * samples)))
+    Data1 = W11 * np.random.multivariate_normal(M11, CIJ, int(PL1 * samples)) + (W12 * np.random.multivariate_normal(M12, CIJ, int(PL1 * samples)))
     Label1 = np.full((int(PL1 * samples), 1), 1)
     Data1 = np.concatenate((Data1, Label1), axis=1)
 
@@ -81,9 +79,32 @@ def generate_data(samples):
     return return_data
 
 
-def train_classifier_grad_desc(x_train, y_train, x_test, y_test, a):
-    # Code adapted from in class notes, matlab code and practice section on google drive
+def train_classifier_grad_desc(x_train, y_train, x_test, y_test, a, loop_iterations = 1000):
+    # Code adapted from in class notes, matlab code and practice section on Google Drive
+    ones_list = np.ones(x_train.shape[0]).T
+    x_train_use = np.asarray(x_train)
+    x_test_use = np.asarray(x_test)
+    z = np.concatenate(([ones_list], x_train_use.T), axis=0)
+    w = np.zeros((3, 1))
 
+    # Need to use .dot product for element wise multiplication of weights and x values
+
+    for loop in range(loop_iterations):
+        h = 1 / (1 + np.exp(-1 * np.dot(w.T, z)))
+        cost1 = 1 / z.shape[1]
+        cost2 = np.dot(z, (h[0] - y_train).T)
+        cost = cost1 * cost2
+        w = w - a * cost
+
+    z = np.concatenate(([np.ones(x_test.shape[0])], x_test_use.T), axis=0)
+    h = 1 / (1 + np.exp(-1 * np.dot(w[0].T, z)))
+    decisions = np.zeros((1, x_test_use.shape[0]))
+    decisions[0] = (h >= 0.5)
+
+    tp = [tchoice for tchoice in range(x_test.shape[0]) if (y_test[tchoice] == 0 and decisions[0, tchoice] == 0)]
+    fp = [fchoice for fchoice in range(x_test.shape[0]) if (y_test[fchoice] == 1 and decisions[0, fchoice] == 1)]
+    print(f'Error on Training Set of Size {x_train.shape[0]}: {100-((len(tp) + len(fp))/100)} %')
+    return w, decisions
 
 
 if __name__ == '__main__':
@@ -93,8 +114,12 @@ if __name__ == '__main__':
     D10KValidate = generate_data(10000)
 
     # Generate Discriminant scores = p(x|L = 1)/p(x|L = 0)
-    disc10K = get_discriminant(D10KValidate, 10000)
+    disc10K = get_discriminant(D10KValidate)
     true_positive10K, false_positive10K, error10K, gammas_10K = erm_classify(disc10K)
+
+    weightsD20, resultsD20 = train_classifier_grad_desc(D20Train.values[:, :2], D20Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001)
+    weightsD200, resultsD200 = train_classifier_grad_desc(D200Train.values[:, :2], D200Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001)
+    weightsD2000, resultsD2000 = train_classifier_grad_desc(D2000Train.values[:, :2], D2000Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001)
 
     print(f'_________________________________________')
     print(f'Part A Outputs and Checks')
@@ -125,5 +150,4 @@ if __name__ == '__main__':
     plt.xlabel('False Detection')
     plt.ylabel('Correct Detection')
     plt.legend()
-
-
+    plt.show()
