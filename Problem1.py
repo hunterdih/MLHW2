@@ -86,6 +86,7 @@ def train_classifier_grad_desc(x_train, y_train, x_test, y_test, a, loop_iterati
     x_train_use = np.asarray(x_train)
     x_test_use = np.asarray(x_test)
     z = np.concatenate(([ones_list], x_train_use.T), axis=0)
+
     w = np.zeros((3, 1))
 
     # Need to use .dot product for element wise multiplication of weights and x values
@@ -93,12 +94,13 @@ def train_classifier_grad_desc(x_train, y_train, x_test, y_test, a, loop_iterati
     for loop in range(loop_iterations):
         h = 1 / (1 + np.exp(-1 * np.dot(w.T, z)))
         cost1 = 1 / z.shape[1]
-        cost2 = np.dot(z, (h[0] - y_train).T)
+        cost2 = np.dot(z, (h - y_train).T)
         cost = cost1 * cost2
         w = w - a * cost
 
     z = np.concatenate(([np.ones(x_test.shape[0])], x_test_use.T), axis=0)
-    h = 1 / (1 + np.exp(-1 * np.dot(w[0].T, z)))
+
+    h = 1 / (1 + np.exp(-1 * np.dot(w.T, z)))
     decisions = np.zeros((1, x_test_use.shape[0]))
     decisions[0] = (h >= 0.5)
 
@@ -118,9 +120,9 @@ if __name__ == '__main__':
     disc10K = get_discriminant(D10KValidate)
     true_positive10K, false_positive10K, error10K, gammas_10K = erm_classify(disc10K)
 
-    weightsD20, resultsD20 = train_classifier_grad_desc(D20Train.values[:, :2], D20Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001)
-    weightsD200, resultsD200 = train_classifier_grad_desc(D200Train.values[:, :2], D200Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001)
-    weightsD2000, resultsD2000 = train_classifier_grad_desc(D2000Train.values[:, :2], D2000Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001)
+    weightsD20, resultsD20 = train_classifier_grad_desc(D20Train.values[:, :2], D20Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001, 5)
+    weightsD200, resultsD200 = train_classifier_grad_desc(D200Train.values[:, :2], D200Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001, 5)
+    weightsD2000, resultsD2000 = train_classifier_grad_desc(D2000Train.values[:, :2], D2000Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.001, 5)
 
     print(f'_________________________________________')
     print(f'Part A Outputs and Checks')
