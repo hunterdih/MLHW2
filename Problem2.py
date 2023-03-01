@@ -14,11 +14,11 @@ sigma = 2
 
 
 def train_MLE(train_x, train_y):
-    weights = None
+    w = None
     bias = np.ones((train_x.shape[0], 1))
     X = np.concatenate((train_x, bias), axis=1)
-    weights = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(train_y)
-    return weights
+    w = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(train_y)
+    return w
 
 
 def predict_MLE(w, test_x):
@@ -27,16 +27,19 @@ def predict_MLE(w, test_x):
     return X.dot(w)
 
 
-    def train(train_x, train_y, lambd):
-        weights = None
-        bias = np.ones((train_x.shape[0], 1))
-        X = np.concatenate((train_x, bias), axis=1)
-        weights = np.linalg.inv(X.T.dot(X) + lambd * np.eye(X.shape[1])).dot(X.T).dot(train_y)
+def train_MAP(train_x, train_y, lambd):
+    w = None
+    bias = np.ones((train_x.shape[0], 1))
+    X = np.concatenate((train_x, bias), axis=1)
+    w = np.linalg.inv(X.T.dot(X) + lambd * np.eye(X.shape[1])).dot(X.T).dot(train_y)
+    return w
 
-    def predict(self, test_x):
-        bias = np.ones((test_x.shape[0], 1))
-        X = np.concatenate((test_x, bias), axis=1)
-        return X.dot(self.weights)
+
+def predict_MAP(w, test_x):
+    bias = np.ones((test_x.shape[0], 1))
+    X = np.concatenate((test_x, bias), axis=1)
+    return X.dot(w)
+
 
 def hw2q2():
     Ntrain = 100
@@ -60,7 +63,7 @@ def generateData(N):
     gmmParameters['meanVectors'] = np.array([[-10, 0, 10], [0, 0, 0], [10, 0, -10]])
     gmmParameters['covMatrices'] = np.zeros((3, 3, 3))
     gmmParameters['covMatrices'][:, :, 0] = np.array([[1, 0, -3], [0, 1, 0], [-3, 0, 15]])
-    gmmParameters['covMatrices'][:, :, 1] = np.array([[8, 0, 0], [0, .5, 0], [0,  0, .5]])
+    gmmParameters['covMatrices'][:, :, 1] = np.array([[8, 0, 0], [0, .5, 0], [0, 0, .5]])
     gmmParameters['covMatrices'][:, :, 2] = np.array([[1, 0, -3], [0, 1, 0], [-3, 0, 15]])
     x, labels = generateDataFromGMM(N, gmmParameters)
     return x
@@ -93,7 +96,6 @@ def generateDataFromGMM(N, gmmParameters):
 
 
 def plot3(a, b, c, mark="o", col="b"):
-
     fig = plt.figure(1)
     ax = fig.add_subplot(projection='3d')
     ax.scatter(a, b, c, marker=mark, color=col)
@@ -103,15 +105,33 @@ def plot3(a, b, c, mark="o", col="b"):
     ax.set_title('Training Dataset')
 
 
-
 if __name__ == '__main__':
     x_train, y_train, x_validate, y_validate = hw2q2()
 
-    weights = train_MLE(x_train.T, y_train.T)
-    results = predict_MLE(weights, x_validate.T)
+    wML = train_MLE(x_train.T, y_train.T)
+    resultsML = predict_MLE(wML, x_validate.T)
 
-    mse = np.mean(np.fabs(y_validate**2 - results**2))
+    wMAP = train_MAP(x_train.T, y_train.T, 100)
+    resultsMAP = predict_MLE(wMAP, x_validate.T)
+    mseMAP_list = []
+    lower_gamma_10 = -10
+    upper_gamma_10 = 10
+    index_list = []
+    for i in range(lower_gamma_10, upper_gamma_10, 1):
+        i = pow(10,i)
+        index_list.append(i)
+        wMAPl = train_MAP(x_train.T, y_train.T, i)
+        resultsMAPl = predict_MLE(wMAPl, x_validate.T)
+        mseMAPl = np.mean(np.fabs(y_validate ** 2 - resultsMAPl ** 2))
+        mseMAP_list.append(mseMAPl)
 
-    print(f'{mse=}')
+    mseML = np.mean(np.fabs(y_validate ** 2 - resultsML ** 2))
+    mseMAP = np.mean(np.fabs(y_validate ** 2 - resultsMAP ** 2))
 
-
+    fig0 = plt.figure(0)
+    plt.plot(index_list, mseMAP_list)
+    plt.show()
+    plt.yscale(value='log')
+    plt.xscale(value='log')
+    print(f'{mseML=}')
+    print(f'{mseMAP=}')
