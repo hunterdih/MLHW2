@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 
 CONTOUR_LEVELS = np.geomspace(0.0001, 250, 100)
 MARKER_TOTAL = 4
-NOISE_SIGMA = 0.01
-SIGMAX = 0.5
-SIGMAY = 0.5
+NOISE_SIGMA = 0.25
+SIGMAX = 0.25
+SIGMAY = 0.25
 SIG_ARRAY = np.array([[pow(SIGMAX, 2), 0], [0, pow(SIGMAY, 2)]])
-LEVELS = np.geomspace(0.001, 5000, 300)
+LEVELS = np.geomspace(0.001, 5000, 250)
 GRID_RESOLUTION = 256
-GRID_HORIZONTAL = 20
-GRID_VERTICAL = 20
-CIRCLE_RADIUS = 5
-RANDOM_THETA = True
+GRID_HORIZONTAL = 2
+GRID_VERTICAL = 2
+CIRCLE_RADIUS = 1
+RANDOM_THETA = False
 
 #random.seed(3)
 if __name__ == '__main__':
@@ -72,7 +72,11 @@ if __name__ == '__main__':
             ax.add_patch(plt.Circle((xy[0], xy[1]), radius=distance, edgecolor=color_list[marker_index], facecolor='None'))
         ax.set_xlim((-GRID_HORIZONTAL, GRID_HORIZONTAL))
         ax.set_ylim((-GRID_VERTICAL, GRID_VERTICAL))
-        plt.contour(grid_orig[0], grid_orig[1], param_estimate_grid, levels=LEVELS)
+        contour = plt.contour(grid_orig[0], grid_orig[1], param_estimate_grid, levels=LEVELS)
+        plt.clabel(contour, inline=True)
+        plt.title(f'Contour MAP Estimates of Vehicle Location for K = {marker_index+1}')
+        plt.xlabel('X Position')
+        plt.ylabel('Y Position')
 
         ax.add_patch(circ)
         plt.show()
