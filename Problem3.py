@@ -3,20 +3,20 @@ import pandas as pd
 import random
 import matplotlib.pyplot as plt
 
-CONTOUR_LEVELS = np.geomspace(0.0001, 250, 100)
+CONTOUR_LEVELS = np.geomspace(0.00001, 10000, 100)
 MARKER_TOTAL = 4
-NOISE_SIGMA = 0.25
+NOISE_SIGMA = 0.3
 SIGMAX = 0.25
 SIGMAY = 0.25
 SIG_ARRAY = np.array([[pow(SIGMAX, 2), 0], [0, pow(SIGMAY, 2)]])
-LEVELS = np.geomspace(0.001, 5000, 250)
+LEVELS = np.geomspace(0.01, 5000, 250)
 GRID_RESOLUTION = 256
 GRID_HORIZONTAL = 2
 GRID_VERTICAL = 2
 CIRCLE_RADIUS = 1
 RANDOM_THETA = False
 
-#random.seed(3)
+random.seed(3)
 if __name__ == '__main__':
     # Initialize the true position of the vehicle
     r = random.uniform(0, CIRCLE_RADIUS)
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         distance_from_true = []
         for marker in markers[:i + 1]:
             # Add a distance measurement for each marker in play, distance is equal to the magnitude of |[xT yT] - [xi yi]|
-            distance_from_true.append(np.linalg.norm(xy_t - marker))
+            distance_from_true.append(np.linalg.norm(xy_t - (marker+random.gauss(0,NOISE_SIGMA))))
 
         # Need to generate a coordinate field. For this example, 512x512. Larger coordinate fields improve accuracy (possible use case for drone capstone)
         grid_orig = np.meshgrid(np.linspace(-GRID_HORIZONTAL, GRID_HORIZONTAL, GRID_RESOLUTION), np.linspace(-GRID_VERTICAL, GRID_VERTICAL, GRID_RESOLUTION))
@@ -72,6 +72,7 @@ if __name__ == '__main__':
             ax.add_patch(plt.Circle((xy[0], xy[1]), radius=distance, edgecolor=color_list[marker_index], facecolor='None'))
         ax.set_xlim((-GRID_HORIZONTAL, GRID_HORIZONTAL))
         ax.set_ylim((-GRID_VERTICAL, GRID_VERTICAL))
+
         contour = plt.contour(grid_orig[0], grid_orig[1], param_estimate_grid, levels=LEVELS)
         plt.clabel(contour, inline=True)
         plt.title(f'Contour MAP Estimates of Vehicle Location for K = {marker_index+1}')
