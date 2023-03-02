@@ -7,11 +7,11 @@ import random
 
 #   Declare Constants
 
-M01 = np.asarray(([-1, -1]))
-M02 = np.asarray(([1, 1]))
-M11 = np.asarray(([-1, 1]))
-M12 = np.asarray(([1, -1]))
-CIJ = np.asarray(([1, 0], [0, 1]))
+M01 = np.asarray(([-10, -10]))
+M02 = np.asarray(([10, 10]))
+M11 = np.asarray(([-10, 10]))
+M12 = np.asarray(([10, -10]))
+CIJ = np.asarray(([10, 0], [0, 10]))
 W01 = 0.5
 W02 = 0.5
 W11 = 0.5
