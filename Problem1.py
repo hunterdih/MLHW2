@@ -4,14 +4,14 @@ import pandas as pd
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import random
-
+random.seed(3)
 #   Declare Constants
 
-M01 = np.asarray(([-10, -10]))
-M02 = np.asarray(([10, 10]))
-M11 = np.asarray(([-10, 10]))
-M12 = np.asarray(([10, -10]))
-CIJ = np.asarray(([10, 0], [0, 10]))
+M01 = np.asarray(([-1, -1]))
+M02 = np.asarray(([1, 1]))
+M11 = np.asarray(([-1, 1]))
+M12 = np.asarray(([1, -1]))
+CIJ = np.asarray(([1, 0], [0, 1]))
 W01 = 0.5
 W02 = 0.5
 W11 = 0.5
@@ -93,7 +93,7 @@ def generate_data(samples):
     return return_data
 
 
-def train_classifier_grad_desc(x_train, y_train, x_test, y_test, a, loop_iterations=1000):
+def train_classifier_grad_desc_lin(x_train, y_train, x_test, y_test, a, loop_iterations=1000):
     # Code adapted from in class notes, matlab code and practice section on Google Drive
     ones_list = np.ones(x_train.shape[0]).T
     x_train_use = np.asarray(x_train)
@@ -122,6 +122,35 @@ def train_classifier_grad_desc(x_train, y_train, x_test, y_test, a, loop_iterati
     print(f'Error on Training Set of Size {x_train.shape[0]}: {100 - ((len(tp) + len(fp)) / 100)} %')
     return w, decisions
 
+def train_classifier_grad_desc_pol(x_train, y_train, x_test, y_test, a, loop_iterations=1000):
+    # Code adapted from in class notes, matlab code and practice section on Google Drive
+    ones_list = np.ones(x_train.shape[0]).T
+    x_train_use = np.asarray(x_train).T
+    x_test_use = np.asarray(x_test).T
+    z = np.c_[ones_list, x_train_use[0], x_train_use[1],x_train_use[0]*x_train_use[0], x_train_use[0]*x_train_use[1], x_train_use[1]*x_train_use[1]].T
+
+    w = np.zeros((6, 1))
+
+    # Need to use .dot product for element wise multiplication of weights and x values
+
+    for loop in range(loop_iterations):
+        h = 1 / (1 + np.exp(-1 * np.dot(w.T, z)))
+        cost1 = 1 / z.shape[1]
+        cost2 = np.dot(z, (h - y_train).T)
+        cost = cost1 * cost2
+        w = w - a * cost
+
+    ones_list = np.ones(x_test.shape[0]).T
+    z = np.c_[ones_list, x_test_use[0], x_test_use[1],x_test_use[0]*x_test_use[0], x_test_use[0]*x_test_use[1], x_test_use[1]*x_test_use[1]].T
+
+    h = 1 / (1 + np.exp(-1 * np.dot(w.T, z)))
+    decisions = np.zeros((1, np.transpose(x_test_use).shape[0]))
+    decisions = (h >= 0.5)
+
+    tp = [tchoice for tchoice in range(x_test.shape[0]) if (y_test[tchoice] == 0 and decisions[0, tchoice] == 0)]
+    fp = [fchoice for fchoice in range(x_test.shape[0]) if (y_test[fchoice] == 1 and decisions[0, fchoice] == 1)]
+    print(f'Error on Training Set of Size {x_train.shape[0]}: {100 - ((len(tp) + len(fp)) / 100)} %')
+    return w, decisions
 
 def plot_data(eVal, gVal, dVal, D10KVal, RD20, RD200, RD2K):
     min_error = min(eVal)
@@ -215,9 +244,23 @@ if __name__ == '__main__':
     disc10K = get_discriminant(D10KValidate)
     true_positive10K, false_positive10K, error10K, gammas_10K = erm_classify(disc10K)
 
-    weightsD20, resultsD20 = train_classifier_grad_desc(D20Train.values[:, :2], D20Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
-    weightsD200, resultsD200 = train_classifier_grad_desc(D200Train.values[:, :2], D200Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
-    weightsD2000, resultsD2000 = train_classifier_grad_desc(D2000Train.values[:, :2], D2000Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+    weightsD20, resultsD20 = train_classifier_grad_desc_lin(D20Train.values[:, :2], D20Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+    weightsD200, resultsD200 = train_classifier_grad_desc_lin(D200Train.values[:, :2], D200Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+    weightsD2000, resultsD2000 = train_classifier_grad_desc_lin(D2000Train.values[:, :2], D2000Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+
+    print(f'_________________________________________')
+    print(f'Part A Outputs and Checks')
+    print(f"True Positive Max = {max(true_positive10K)}")
+    print(f"True Positive Min = {min(true_positive10K)}")
+    print(f"False Positive Max = {max(false_positive10K)}")
+    print(f"False Positive Min = {min(false_positive10K)}")
+
+    plot_data(error10K, gammas_10K, disc10K, D10KValidate, resultsD20, resultsD200, resultsD2000)
+
+    weightsD20, resultsD20 = train_classifier_grad_desc_pol(D20Train.values[:, :2], D20Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+    weightsD200, resultsD200 = train_classifier_grad_desc_pol(D200Train.values[:, :2], D200Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+    weightsD2000, resultsD2000 = train_classifier_grad_desc_pol(D2000Train.values[:, :2], D2000Train.values[:, 2], D10KValidate.values[:, :2], D10KValidate.values[:, 2], 0.0001, 100)
+
     print(f'_________________________________________')
     print(f'Part A Outputs and Checks')
     print(f"True Positive Max = {max(true_positive10K)}")
